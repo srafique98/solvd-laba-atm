@@ -5,7 +5,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.security.Timestamp;
 import java.time.LocalDate;
 
 
@@ -14,7 +13,7 @@ import java.time.LocalDate;
 @ToString
 @NoArgsConstructor
 public class Transaction {
-    private long id;
+    private Long id;
     private LocalDate date;
     private TransactionDetail transactionDetailId;
 

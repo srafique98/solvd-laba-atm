@@ -12,7 +12,7 @@ import java.util.List;
 @ToString
 @NoArgsConstructor
 public class User {
-    private long id;
+    private Long id;
     private String name;
     private Credential credentialId;
 
