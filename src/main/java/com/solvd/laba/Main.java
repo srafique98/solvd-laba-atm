@@ -1,16 +1,16 @@
 package com.solvd.laba;
 
-import com.solvd.laba.domain.Account;
-import com.solvd.laba.domain.Credential;
-import com.solvd.laba.domain.Transaction;
-import com.solvd.laba.domain.User;
+import com.solvd.laba.domain.*;
 import com.solvd.laba.service.impl.AccountServiceImpl;
+import com.solvd.laba.service.impl.TransactionServiceImpl;
 import com.solvd.laba.service.impl.UserServiceImpl;
 import com.solvd.laba.service.interfaces.AccountService;
 import com.solvd.laba.service.interfaces.CredentialService;
 import com.solvd.laba.service.impl.CredentialServiceImpl;
+import com.solvd.laba.service.interfaces.TransactionService;
 import com.solvd.laba.service.interfaces.UserService;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +22,8 @@ public class Main {
         CredentialService credentialService = new CredentialServiceImpl();
         AccountService accountService = new AccountServiceImpl();
         UserService userService = new UserServiceImpl();
+
+        TransactionService transactionService = new TransactionServiceImpl();
 
         //Create New Credential
 //        Credential c1  = createNewCredential("3829","8493846329");
@@ -43,14 +45,49 @@ public class Main {
 //        System.out.println(accountService.findById(5L));
 
         //User
-        Credential c2  = createNewCredential("3932","8493846329");
-        Account a3 = createNewAccount(88.0, "Saving", 0 );
-        List<Account> accounts = new ArrayList<>();
+//        Credential c2  = createNewCredential("3932","8493846329");
+//        Account a3 = createNewAccount(88.0, "Saving", 0 );
+//        List<Account> accounts = new ArrayList<>();
 
 //        User a1 = createNewUser("User6", c2, .2 );
 
 
+        //Transaction
+        TransactionDetail td1 = createNewTransactionDetail(50.0,20,70,null,"Deposit");
+        Transaction t1 = createNewTransaction(LocalDate.now(),td1);
 
+        transactionService.create(t1,1L);
+
+
+
+    }
+
+    private static TransactionDetail createNewTransactionDetail(double amount, double preBalance, double postBalance, String transferTo, String type) {
+        if (!isValidTransactionType(type)) {
+            throw new IllegalArgumentException("Invalid transaction type. Allowed types are: WithDrawal, Deposit, Transfer");
+        }
+        if (type.equals("Transfer") && (transferTo == null || transferTo.isEmpty())) {
+            throw new IllegalArgumentException("TransferTo must be specified for Transfer transactions.");
+        }
+        TransactionDetail td = new TransactionDetail();
+        td.setAmount(amount);
+        td.setPreBalance(preBalance);
+        td.setPostBalance(postBalance);
+        if (type.equals("Transfer")) {
+            td.setTransferTo(transferTo);
+        }
+        td.setType(type);
+        return td;
+    }
+    private static boolean isValidTransactionType(String type) {
+        return type != null && (type.equals("WithDrawal") || type.equals("Deposit") || type.equals("Transfer"));
+    }
+
+    private static Transaction createNewTransaction(LocalDate date, TransactionDetail transactionDetail) {
+        Transaction t1 = new Transaction();
+        t1.setDate(date);
+        t1.setTransactionDetail(transactionDetail);
+        return t1;
     }
 
     private static User createNewUser(String name, Credential credential, List<Account> accounts, List<Transaction> transactions) {

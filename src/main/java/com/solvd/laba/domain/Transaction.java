@@ -15,6 +15,6 @@ import java.time.LocalDate;
 public class Transaction {
     private Long id;
     private LocalDate date;
-    private TransactionDetail transactionDetailId;
+    private TransactionDetail transactionDetail;
 
 }
