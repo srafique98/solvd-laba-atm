@@ -27,7 +27,8 @@ public class ConnectionPool {
 
 
     private Connection createConnection() {
-        try (Connection connection = DriverManager.getConnection(Config.URL.getValue(), Config.USERNAME.getValue(), Config.PASSWORD.getValue())) {
+        try {
+            Connection connection = DriverManager.getConnection(Config.URL.getValue(), Config.USERNAME.getValue(), Config.PASSWORD.getValue());
             return connection;
         } catch (SQLException e) {
             throw new RuntimeException("Create connection failed! ", e);

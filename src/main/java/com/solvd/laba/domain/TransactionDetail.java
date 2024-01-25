@@ -10,7 +10,7 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 public class TransactionDetail {
-    private long id;
+    private Long id;
     private double amount;
     private double preBalance;
     private double postBalance;
