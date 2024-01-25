@@ -14,5 +14,4 @@ public class Account {
     private double balance;
     private String type;
     private double interestRate;
-    private User user;
 }

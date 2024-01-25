@@ -1,36 +1,35 @@
 package com.solvd.laba.persistence.impl;
 
-import com.solvd.laba.domain.Credential;
+import com.solvd.laba.domain.Account;
 import com.solvd.laba.persistence.ConnectionPool;
-import com.solvd.laba.persistence.interfaces.CredentialRepository;
+import com.solvd.laba.persistence.interfaces.AccountRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
 
-
-public class CredentialDAO implements CredentialRepository {
-
+public class AccountDAO implements AccountRepository {
     private static final ConnectionPool CONNECTION_POOL = ConnectionPool.getInstance();
-    private static final Logger LOGGER = LogManager.getLogger(CredentialDAO.class);
-
+    private static final Logger LOGGER = LogManager.getLogger(AccountDAO.class);
     @Override
-    public void create(Credential credential) {
+    public void create(Account account, Long userID) {
         Connection conn = CONNECTION_POOL.getConnection();
         try {
             conn.setAutoCommit(false);
-            String createQuery =  "INSERT INTO credentials (pin, account_number) VALUES (?, ?)";
+            String createQuery =  "INSERT INTO accounts (balance, type, interest_rate, user_id) VALUES (?, ?, ?,?)";
             try (PreparedStatement ps = conn.prepareStatement(createQuery, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, credential.getPin());
-                ps.setString(2, credential.getAccountNumber());
+                ps.setDouble(1, account.getBalance());
+                ps.setString(2, account.getType());
+                ps.setDouble(3, account.getInterestRate());
+                ps.setLong(4, userID);
                 ps.executeUpdate();
                 ResultSet resultSet = ps.getGeneratedKeys();
                 while (resultSet.next()){
-                    credential.setId(resultSet.getLong(1));
+                    account.setId(resultSet.getLong(1));
                 }
             }
             conn.commit();
-            LOGGER.info("Credential created:\n " + credential);
+            LOGGER.info("Account created:\n " + account);
         } catch (SQLException e) {
             try {
                 conn.rollback();
@@ -45,21 +44,22 @@ public class CredentialDAO implements CredentialRepository {
             }
             CONNECTION_POOL.releaseConnection(conn);
         }
+
     }
 
     @Override
-    public Credential findById(Long id) {
+    public Account findById(Long id) {
         Connection connection = CONNECTION_POOL.getConnection();
-        Credential credential = null;
+        Account account = null;
         try {
             connection.setReadOnly(true);
             connection.setAutoCommit(false);
-            String selectQuery = "SELECT id as credential_id, pin as credential_pin, account_number as credential_account_number FROM credentials WHERE id = ?";
+            String selectQuery = "SELECT id as account_id, balance as account_balance, type as account_type, interest_rate as account_interest_rate, user_id as account_user_id FROM accounts WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
                 ps.setLong(1, id);
                 ResultSet resultSet = ps.executeQuery();
                 if (resultSet.next()) {
-                    credential = mapRow(resultSet);
+                    account = mapRow(resultSet);
                 }
             }
             connection.commit();
@@ -79,35 +79,36 @@ public class CredentialDAO implements CredentialRepository {
             }
             CONNECTION_POOL.releaseConnection(connection);
         }
-        return credential;
-
+        return account;
     }
 
-    public static Credential mapRow(ResultSet resultSet) throws SQLException {
-        Credential credential = new Credential();
-        long credentialID = resultSet.getLong("credential_id");
-        if (credentialID != 0) {
-            credential.setId(credentialID);
-            credential.setPin(resultSet.getString("credential_pin"));
-            credential.setAccountNumber(resultSet.getString("credential_account_number"));
+    public static Account mapRow(ResultSet resultSet) throws SQLException {
+        Account account = new Account();
+        long accountID = resultSet.getLong("account_id");
+        if (accountID != 0) {
+            account.setId(accountID);
+            account.setBalance(resultSet.getDouble("account_balance"));
+            account.setType(resultSet.getString("account_type"));
+            account.setInterestRate(resultSet.getDouble("account_interest_rate"));
         }
-        return credential;
+        return account;
     }
 
     @Override
-    public void updateById(Credential credential) {
+    public void updateById(Account account) {
         Connection connection = CONNECTION_POOL.getConnection();
         try {
             connection.setAutoCommit(false);
-            String updateQuery = "UPDATE credentials SET pin = ?, account_number = ? WHERE id = ?";
+            String updateQuery = "UPDATE accounts SET balance = ?, type = ?, interest_rate = ? WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-                ps.setString(1, credential.getPin());
-                ps.setString(2, credential.getAccountNumber());
-                ps.setLong(3, credential.getId());
+                ps.setDouble(1, account.getBalance());
+                ps.setString(2, account.getType());
+                ps.setDouble(3, account.getInterestRate());
+                ps.setLong(4, account.getId());
                 ps.executeUpdate();
             }
             connection.commit();
-            LOGGER.info("Credential updated: " + credential);
+            LOGGER.info("Account updated: " + account);
         } catch (SQLException e) {
             try {
                 connection.rollback();
@@ -123,6 +124,5 @@ public class CredentialDAO implements CredentialRepository {
             }
             CONNECTION_POOL.releaseConnection(connection);
         }
-
     }
 }

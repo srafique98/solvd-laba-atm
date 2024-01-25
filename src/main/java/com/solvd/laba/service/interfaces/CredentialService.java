@@ -1,8 +1,8 @@
-package com.solvd.laba.persistence;
+package com.solvd.laba.service.interfaces;
 
 import com.solvd.laba.domain.Credential;
 
-public interface CredentialRepository {
+public interface CredentialService {
     void create(Credential credential);
 
     Credential findById(Long id);

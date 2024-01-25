@@ -1,9 +1,9 @@
 package com.solvd.laba.service.impl;
 
 import com.solvd.laba.domain.Credential;
-import com.solvd.laba.persistence.CredentialRepository;
+import com.solvd.laba.persistence.interfaces.CredentialRepository;
 import com.solvd.laba.persistence.impl.CredentialDAO;
-import com.solvd.laba.service.CredentialService;
+import com.solvd.laba.service.interfaces.CredentialService;
 
 public class CredentialServiceImpl implements CredentialService {
     private final CredentialRepository credentialRepository;
@@ -19,11 +19,12 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Override
     public Credential findById(Long id) {
-        return null;
+        return credentialRepository.findById(id);
     }
 
     @Override
     public void updateById(Credential credential) {
+        credentialRepository.updateById(credential);
 
     }
 }

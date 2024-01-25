@@ -14,7 +14,7 @@ import java.util.List;
 public class User {
     private Long id;
     private String name;
-    private Credential credentialId;
+    private Credential credential;
 
     private List<Account> accounts;
     private List<Transaction> transactions;
