@@ -40,27 +40,17 @@ CREATE TABLE IF NOT EXISTS accounts (
     users (id) ON DELETE CASCADE ON UPDATE NO ACTION
 );
 
-CREATE TABLE IF NOT EXISTS transaction_details (
-	id SERIAL,
-    amount DOUBLE NOT NULL,
-    pre_balance DOUBLE,
-    post_balance DOUBLE,
-    transfer_to VARCHAR(50),
-    type ENUM("WithDrawal", "Deposit", "Transfer"),
-    PRIMARY KEY (id)
-);
 
 CREATE TABLE IF NOT EXISTS transactions (
 	id SERIAL,
     date TIMESTAMP,
     PRIMARY KEY (id),
+    amount DOUBLE,
+    type ENUM("WithDrawal", "Deposit", "Transfer"),
     user_id BIGINT unsigned,
-    transaction_detail_id BIGINT UNSIGNED,
-    
+
     CONSTRAINT fk_transaction_user FOREIGN KEY (user_id) REFERENCES 
     users (id) ON DELETE CASCADE ON UPDATE NO ACTION,
-    
-    CONSTRAINT fk_transaction_details FOREIGN KEY (transaction_detail_id) REFERENCES 
-    transaction_details (id) ON DELETE CASCADE ON UPDATE NO ACTION
+
 );
 

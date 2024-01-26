@@ -7,6 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TransactionDAO implements TransactionRepository {
     private static final ConnectionPool CONNECTION_POOL = ConnectionPool.getInstance();
@@ -16,12 +18,14 @@ public class TransactionDAO implements TransactionRepository {
         Connection conn = CONNECTION_POOL.getConnection();
         try {
             conn.setAutoCommit(false);
-            String createQuery =  "INSERT INTO transactions (date, user_id, transaction_detail_id) VALUES (?, ?, ?)";
+            String createQuery =  "INSERT INTO transactions (date, user_id, amount, type) VALUES (?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(createQuery, Statement.RETURN_GENERATED_KEYS)) {
                 java.sql.Date sqlDate = java.sql.Date.valueOf(transaction.getDate());
                 ps.setDate(1, sqlDate);
                 ps.setLong(2, userID);
-                ps.setLong(3, transaction.getTransactionDetail().getId());
+                ps.setDouble(3, transaction.getAmount());
+                ps.setString(4, transaction.getType());
+
                 ps.executeUpdate();
                 ResultSet resultSet = ps.getGeneratedKeys();
                 while (resultSet.next()){
@@ -53,16 +57,9 @@ public class TransactionDAO implements TransactionRepository {
         try {
             connection.setReadOnly(true);
             connection.setAutoCommit(false);
-            String selectQuery =
-                    "SELECT transactions.id AS transaction_id, transactions.date AS transaction_date, transactions.user_id AS user_id, " +
-                            "transactions.transaction_detail_id AS transaction_detail_id, transaction_details.amount AS transaction_amount, " +
-                            "transaction_details.pre_balance AS pre_balance, transaction_details.post_balance AS post_balance, " +
-                            "transaction_details.transfer_to AS transfer_to, transaction_details.type AS transaction_type " +
-                            "FROM transactions " +
-                            "JOIN " +
-                            "transaction_details ON transactions.transaction_detail_id = transaction_details.id " +
-                            "WHERE " +
-                            "transactions.id = ?";
+            String selectQuery = "SELECT id AS transaction_id, date AS transaction_date, " +
+                    "user_id AS transaction_user_id, amount AS transaction_amount,  " +
+                    "type AS transaction_type FROM transactions;";
             
             try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
                 ps.setLong(1, id);
@@ -91,16 +88,23 @@ public class TransactionDAO implements TransactionRepository {
         return transaction;
     }
 
-    private Transaction mapRow(ResultSet resultSet) throws SQLException {
+    public static List<Transaction> mapRow(ResultSet resultSet, List<Transaction> transactions) throws SQLException{
+        if (transactions == null){
+            transactions = new ArrayList<>();
+        }
+        transactions.add(mapRow(resultSet));
+        return transactions;
+    }
+
+    public static Transaction mapRow(ResultSet resultSet) throws SQLException {
         Transaction transaction = new Transaction();
         long transactionID = resultSet.getLong("transaction_id");
         if (transactionID != 0) {
             transaction.setId(transactionID);
             java.sql.Timestamp dateTimestamp = resultSet.getTimestamp("transaction_date");
             transaction.setDate(dateTimestamp == null ? null : dateTimestamp.toLocalDateTime().toLocalDate());
-
-//            patient.setMedications(MedicationDAOImpl.mapRow(resultSet, patient.getMedications()));
-
+            transaction.setAmount(resultSet.getDouble("transaction_amount"));
+            transaction.setType(resultSet.getString("transaction_type"));
         }
         return transaction;
     }
@@ -110,10 +114,13 @@ public class TransactionDAO implements TransactionRepository {
         Connection connection = CONNECTION_POOL.getConnection();
         try {
             connection.setAutoCommit(false);
-            String updateQuery = "UPDATE transactions SET date = ? WHERE id = ?";
+            String updateQuery = "UPDATE transactions SET date = ?, amount = ?, type = ? WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
                 java.sql.Date sqlDate = java.sql.Date.valueOf(transaction.getDate());
                 ps.setDate(1, sqlDate);
+                ps.setDouble(2, transaction.getAmount());
+                ps.setString(3, transaction.getType());
+
                 ps.executeUpdate();
             }
             connection.commit();

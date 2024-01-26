@@ -5,18 +5,20 @@ import com.solvd.laba.persistence.impl.UserDAO;
 import com.solvd.laba.persistence.interfaces.UserRepository;
 import com.solvd.laba.service.interfaces.AccountService;
 import com.solvd.laba.service.interfaces.CredentialService;
+import com.solvd.laba.service.interfaces.TransactionService;
 import com.solvd.laba.service.interfaces.UserService;
 
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final AccountService accountService;
     private final CredentialService credentialService;
-//    private final TransactionService transactionService;
+    private final TransactionService transactionService;
 
     public UserServiceImpl() {
         this.userRepository = new UserDAO();
         this.accountService = new AccountServiceImpl();
         this.credentialService = new CredentialServiceImpl();
+        this.transactionService = new TransactionServiceImpl();
 
     }
 
@@ -31,6 +33,12 @@ public class UserServiceImpl implements UserService {
         if (!user.getAccounts().isEmpty()) {
             user.getAccounts().forEach(account -> {
                 accountService.create(account,user.getId());
+            });
+        }
+
+        if (!user.getTransactions().isEmpty()) {
+            user.getTransactions().forEach(transaction -> {
+                transactionService.create(transaction,user.getId());
             });
         }
 

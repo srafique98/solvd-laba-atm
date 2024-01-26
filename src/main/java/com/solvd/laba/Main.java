@@ -52,43 +52,17 @@ public class Main {
 //        User a1 = createNewUser("User6", c2, .2 );
 
 
-        //Transaction
-        TransactionDetail td1 = createNewTransactionDetail(50.0,20,70,null,"Deposit");
-        Transaction t1 = createNewTransaction(LocalDate.now(),td1);
 
-        transactionService.create(t1,1L);
 
 
 
     }
 
-    private static TransactionDetail createNewTransactionDetail(double amount, double preBalance, double postBalance, String transferTo, String type) {
-        if (!isValidTransactionType(type)) {
-            throw new IllegalArgumentException("Invalid transaction type. Allowed types are: WithDrawal, Deposit, Transfer");
-        }
-        if (type.equals("Transfer") && (transferTo == null || transferTo.isEmpty())) {
-            throw new IllegalArgumentException("TransferTo must be specified for Transfer transactions.");
-        }
-        TransactionDetail td = new TransactionDetail();
-        td.setAmount(amount);
-        td.setPreBalance(preBalance);
-        td.setPostBalance(postBalance);
-        if (type.equals("Transfer")) {
-            td.setTransferTo(transferTo);
-        }
-        td.setType(type);
-        return td;
-    }
+
     private static boolean isValidTransactionType(String type) {
         return type != null && (type.equals("WithDrawal") || type.equals("Deposit") || type.equals("Transfer"));
     }
 
-    private static Transaction createNewTransaction(LocalDate date, TransactionDetail transactionDetail) {
-        Transaction t1 = new Transaction();
-        t1.setDate(date);
-        t1.setTransactionDetail(transactionDetail);
-        return t1;
-    }
 
     private static User createNewUser(String name, Credential credential, List<Account> accounts, List<Transaction> transactions) {
         User newUser = new User();
