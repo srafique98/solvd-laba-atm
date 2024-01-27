@@ -1,8 +1,8 @@
 package com.solvd.laba.persistence.impl;
 
-import com.solvd.laba.domain.User;
+import com.solvd.laba.domain.Transaction;
 import com.solvd.laba.persistence.ConnectionPool;
-import com.solvd.laba.persistence.interfaces.UserRepository;
+import com.solvd.laba.persistence.interfaces.TransactionRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,27 +10,30 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UserDAO implements UserRepository {
+public class TransactionDAO implements TransactionRepository {
     private static final ConnectionPool CONNECTION_POOL = ConnectionPool.getInstance();
-    private static final Logger LOGGER = LogManager.getLogger(UserDAO.class);
+    private static final Logger LOGGER = LogManager.getLogger(TransactionDAO.class);
     @Override
-    public void create(User user, Long atmID, Long credentialID) {
+    public void create(Transaction transaction, Long userID) {
         Connection conn = CONNECTION_POOL.getConnection();
         try {
             conn.setAutoCommit(false);
-            String createQuery =  "INSERT INTO users (name, atm_id, credential_id) VALUES (?, ?, ?)";
+            String createQuery =  "INSERT INTO transactions (date, user_id, amount, type) VALUES (?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(createQuery, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, user.getName());
-                ps.setLong(2, atmID);
-                ps.setLong(3, credentialID);
+                java.sql.Date sqlDate = java.sql.Date.valueOf(transaction.getDate());
+                ps.setDate(1, sqlDate);
+                ps.setLong(2, userID);
+                ps.setDouble(3, transaction.getAmount());
+                ps.setString(4, transaction.getType());
+
                 ps.executeUpdate();
                 ResultSet resultSet = ps.getGeneratedKeys();
                 while (resultSet.next()){
-                    user.setId(resultSet.getLong(1));
+                    transaction.setId(resultSet.getLong(1));
                 }
             }
             conn.commit();
-            LOGGER.info("User created:\n " + user);
+            LOGGER.info("Transaction created:\n " + transaction);
         } catch (SQLException e) {
             try {
                 conn.rollback();
@@ -45,32 +48,24 @@ public class UserDAO implements UserRepository {
             }
             CONNECTION_POOL.releaseConnection(conn);
         }
-
     }
 
     @Override
-    public User findById(Long id) {
+    public Transaction findById(Long id) {
         Connection connection = CONNECTION_POOL.getConnection();
-        User user = null;
+        Transaction transaction = null;
         try {
             connection.setReadOnly(true);
             connection.setAutoCommit(false);
-            String selectQuery = "SELECT u.id AS user_id, u.atm_id AS user_atm_id, u.credential_id AS user_credential_id, " +
-                    "u.name AS user_name, a.id AS account_id, a.balance AS account_balance, a.type AS account_type, " +
-                    "a.interest_rate AS account_interest_rate, " +
-                    "c.id AS credential_id, c.pin AS credential_pin, c.account_number AS credential_account_number, " +
-                    "t.id AS transaction_id, t.date AS transaction_date, " +
-                    "t.amount AS transaction_amount, t.type AS transaction_type " +
-                    "FROM users u JOIN accounts a ON u.id = a.user_id " +
-                    "JOIN credentials c ON u.credential_id = c.id " +
-                    "LEFT JOIN transactions t ON u.id = t.user_id " +
-                    "WHERE u.id = ?";
-
+            String selectQuery = "SELECT id AS transaction_id, date AS transaction_date, " +
+                    "user_id AS transaction_user_id, amount AS transaction_amount,  " +
+                    "type AS transaction_type FROM transactions WHERE id = ?";
+            
             try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
                 ps.setLong(1, id);
                 ResultSet resultSet = ps.executeQuery();
                 if (resultSet.next()) {
-                    user = mapRow(resultSet);
+                    transaction = mapRow(resultSet);
                 }
             }
             connection.commit();
@@ -90,43 +85,47 @@ public class UserDAO implements UserRepository {
             }
             CONNECTION_POOL.releaseConnection(connection);
         }
-        return user;
+        return transaction;
     }
 
-    public static List<User> mapRow(ResultSet resultSet, List<User> users) throws SQLException{
-        if (users == null){
-            users = new ArrayList<>();
+    public static List<Transaction> mapRow(ResultSet resultSet, List<Transaction> transactions) throws SQLException{
+        if (transactions == null){
+            transactions = new ArrayList<>();
         }
-        users.add(mapRow(resultSet));
-        return users;
+        transactions.add(mapRow(resultSet));
+        return transactions;
     }
 
-    public static User mapRow(ResultSet resultSet) throws SQLException {
-        User user = new User();
-        long userId = resultSet.getLong("user_id");
-        if (userId != 0) {
-            user.setId(userId);
-            user.setName(resultSet.getString("user_name"));
-            user.setCredential(CredentialDAO.mapRow(resultSet));
-            user.setAccounts(AccountDAO.mapRow(resultSet,user.getAccounts()));
-            user.setTransactions(TransactionDAO.mapRow(resultSet, user.getTransactions()));
+    public static Transaction mapRow(ResultSet resultSet) throws SQLException {
+        Transaction transaction = new Transaction();
+        long transactionID = resultSet.getLong("transaction_id");
+        if (transactionID != 0) {
+            transaction.setId(transactionID);
+            java.sql.Timestamp dateTimestamp = resultSet.getTimestamp("transaction_date");
+            transaction.setDate(dateTimestamp == null ? null : dateTimestamp.toLocalDateTime().toLocalDate());
+            transaction.setAmount(resultSet.getDouble("transaction_amount"));
+            transaction.setType(resultSet.getString("transaction_type"));
         }
-        return user;
+        return transaction;
     }
 
     @Override
-    public void updateById(User user) {
+    public void updateById(Transaction transaction) {
         Connection connection = CONNECTION_POOL.getConnection();
         try {
             connection.setAutoCommit(false);
-            String updateQuery = "UPDATE users SET name = ? WHERE id = ?";
+            String updateQuery = "UPDATE transactions SET date = ?, amount = ?, type = ? WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-                ps.setString(1, user.getName());
-                ps.setLong(2, user.getId());
+                java.sql.Date sqlDate = java.sql.Date.valueOf(transaction.getDate());
+                ps.setDate(1, sqlDate);
+                ps.setDouble(2, transaction.getAmount());
+                ps.setString(3, transaction.getType());
+                ps.setLong(4, transaction.getId());
+
                 ps.executeUpdate();
             }
             connection.commit();
-            LOGGER.info("User updated: " + user);
+            LOGGER.info("Transaction updated: " + transaction);
         } catch (SQLException e) {
             try {
                 connection.rollback();

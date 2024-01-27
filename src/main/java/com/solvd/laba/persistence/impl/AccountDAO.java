@@ -7,6 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AccountDAO implements AccountRepository {
     private static final ConnectionPool CONNECTION_POOL = ConnectionPool.getInstance();
@@ -80,6 +82,14 @@ public class AccountDAO implements AccountRepository {
             CONNECTION_POOL.releaseConnection(connection);
         }
         return account;
+    }
+
+    public static List<Account> mapRow(ResultSet resultSet, List<Account> accounts) throws SQLException{
+        if (accounts == null){
+            accounts = new ArrayList<>();
+        }
+        accounts.add(mapRow(resultSet));
+        return accounts;
     }
 
     public static Account mapRow(ResultSet resultSet) throws SQLException {

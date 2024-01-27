@@ -15,6 +15,11 @@ import java.time.LocalDate;
 public class Transaction {
     private Long id;
     private LocalDate date;
-    private TransactionDetail transactionDetailId;
+    private double amount;
+    private String type;
+
+    public  boolean isValidTransactionType(String type) {
+        return type != null && (type.equals("WithDrawal") || type.equals("Deposit") || type.equals("Transfer"));
+    }
 
 }

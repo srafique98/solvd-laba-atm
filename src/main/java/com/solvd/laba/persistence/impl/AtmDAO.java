@@ -1,36 +1,32 @@
 package com.solvd.laba.persistence.impl;
 
-import com.solvd.laba.domain.User;
+import com.solvd.laba.domain.Atm;
 import com.solvd.laba.persistence.ConnectionPool;
-import com.solvd.laba.persistence.interfaces.UserRepository;
+import com.solvd.laba.persistence.interfaces.AtmRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
-public class UserDAO implements UserRepository {
+public class AtmDAO implements AtmRepository {
     private static final ConnectionPool CONNECTION_POOL = ConnectionPool.getInstance();
-    private static final Logger LOGGER = LogManager.getLogger(UserDAO.class);
+    private static final Logger LOGGER = LogManager.getLogger(AtmDAO.class);
     @Override
-    public void create(User user, Long atmID, Long credentialID) {
+    public void create(Atm atm) {
         Connection conn = CONNECTION_POOL.getConnection();
         try {
             conn.setAutoCommit(false);
-            String createQuery =  "INSERT INTO users (name, atm_id, credential_id) VALUES (?, ?, ?)";
+            String createQuery =  "INSERT INTO atms (city) VALUES (?)";
             try (PreparedStatement ps = conn.prepareStatement(createQuery, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, user.getName());
-                ps.setLong(2, atmID);
-                ps.setLong(3, credentialID);
+                ps.setString(1, atm.getCity());
                 ps.executeUpdate();
                 ResultSet resultSet = ps.getGeneratedKeys();
                 while (resultSet.next()){
-                    user.setId(resultSet.getLong(1));
+                    atm.setId(resultSet.getLong(1));
                 }
             }
             conn.commit();
-            LOGGER.info("User created:\n " + user);
+            LOGGER.info("Atm created:\n " + atm);
         } catch (SQLException e) {
             try {
                 conn.rollback();
@@ -45,32 +41,32 @@ public class UserDAO implements UserRepository {
             }
             CONNECTION_POOL.releaseConnection(conn);
         }
-
     }
 
     @Override
-    public User findById(Long id) {
+    public Atm findById(Long id) {
         Connection connection = CONNECTION_POOL.getConnection();
-        User user = null;
+        Atm atm = null;
         try {
             connection.setReadOnly(true);
             connection.setAutoCommit(false);
-            String selectQuery = "SELECT u.id AS user_id, u.atm_id AS user_atm_id, u.credential_id AS user_credential_id, " +
-                    "u.name AS user_name, a.id AS account_id, a.balance AS account_balance, a.type AS account_type, " +
-                    "a.interest_rate AS account_interest_rate, " +
-                    "c.id AS credential_id, c.pin AS credential_pin, c.account_number AS credential_account_number, " +
-                    "t.id AS transaction_id, t.date AS transaction_date, " +
-                    "t.amount AS transaction_amount, t.type AS transaction_type " +
-                    "FROM users u JOIN accounts a ON u.id = a.user_id " +
-                    "JOIN credentials c ON u.credential_id = c.id " +
-                    "LEFT JOIN transactions t ON u.id = t.user_id " +
-                    "WHERE u.id = ?";
+            String selectQuery = "SELECT a.id AS atm_id, a.city AS atm_city, " +
+                    "u.id AS user_id, u.atm_id AS user_atm_id, " +
+                    "u.credential_id AS user_credential_id, u.name AS user_name, " +
+                    "ac.id AS account_id, ac.balance AS account_balance, ac.type AS account_type, " +
+                    "ac.interest_rate AS account_interest_rate, " +
+                    "cr.id AS credential_id, cr.pin AS credential_pin, cr.account_number AS credential_account_number, " +
+                    "t.id AS transaction_id, t.date AS transaction_date, t.amount AS transaction_amount, t.type AS transaction_type " +
+                    "FROM atms a JOIN users u ON a.id = u.atm_id " +
+                    "LEFT JOIN accounts ac ON u.id = ac.user_id " +
+                    "LEFT JOIN credentials cr ON u.credential_id = cr.id " +
+                    "LEFT JOIN transactions t ON u.id = t.user_id WHERE a.id = ?";
 
             try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
                 ps.setLong(1, id);
                 ResultSet resultSet = ps.executeQuery();
                 if (resultSet.next()) {
-                    user = mapRow(resultSet);
+                    atm = mapRow(resultSet);
                 }
             }
             connection.commit();
@@ -90,43 +86,33 @@ public class UserDAO implements UserRepository {
             }
             CONNECTION_POOL.releaseConnection(connection);
         }
-        return user;
+        return atm;
     }
 
-    public static List<User> mapRow(ResultSet resultSet, List<User> users) throws SQLException{
-        if (users == null){
-            users = new ArrayList<>();
+    public static Atm mapRow(ResultSet resultSet) throws SQLException {
+        Atm atm = new Atm();
+        long atmId = resultSet.getLong("atm_id");
+        if (atmId != 0) {
+            atm.setId(atmId);
+            atm.setCity(resultSet.getString("atm_city"));
+            atm.setUsers(UserDAO.mapRow(resultSet,atm.getUsers()));
         }
-        users.add(mapRow(resultSet));
-        return users;
-    }
-
-    public static User mapRow(ResultSet resultSet) throws SQLException {
-        User user = new User();
-        long userId = resultSet.getLong("user_id");
-        if (userId != 0) {
-            user.setId(userId);
-            user.setName(resultSet.getString("user_name"));
-            user.setCredential(CredentialDAO.mapRow(resultSet));
-            user.setAccounts(AccountDAO.mapRow(resultSet,user.getAccounts()));
-            user.setTransactions(TransactionDAO.mapRow(resultSet, user.getTransactions()));
-        }
-        return user;
+        return atm;
     }
 
     @Override
-    public void updateById(User user) {
+    public void updateById(Atm atm) {
         Connection connection = CONNECTION_POOL.getConnection();
         try {
             connection.setAutoCommit(false);
-            String updateQuery = "UPDATE users SET name = ? WHERE id = ?";
+            String updateQuery = "UPDATE atms SET city = ? WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-                ps.setString(1, user.getName());
-                ps.setLong(2, user.getId());
+                ps.setString(1, atm.getCity());
+                ps.setLong(2, atm.getId());
                 ps.executeUpdate();
             }
             connection.commit();
-            LOGGER.info("User updated: " + user);
+            LOGGER.info("Atm updated: " + atm);
         } catch (SQLException e) {
             try {
                 connection.rollback();
@@ -142,6 +128,5 @@ public class UserDAO implements UserRepository {
             }
             CONNECTION_POOL.releaseConnection(connection);
         }
-
     }
 }
