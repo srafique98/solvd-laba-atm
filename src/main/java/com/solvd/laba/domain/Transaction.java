@@ -17,4 +17,9 @@ public class Transaction {
     private LocalDate date;
     private double amount;
     private String type;
+
+    public  boolean isValidTransactionType(String type) {
+        return type != null && (type.equals("WithDrawal") || type.equals("Deposit") || type.equals("Transfer"));
+    }
+
 }

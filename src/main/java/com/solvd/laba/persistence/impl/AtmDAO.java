@@ -108,6 +108,7 @@ public class AtmDAO implements AtmRepository {
             String updateQuery = "UPDATE atms SET city = ? WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
                 ps.setString(1, atm.getCity());
+                ps.setLong(2, atm.getId());
                 ps.executeUpdate();
             }
             connection.commit();

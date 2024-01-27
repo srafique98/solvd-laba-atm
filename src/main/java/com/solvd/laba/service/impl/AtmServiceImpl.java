@@ -6,6 +6,8 @@ import com.solvd.laba.persistence.interfaces.AtmRepository;
 import com.solvd.laba.service.interfaces.AtmService;
 import com.solvd.laba.service.interfaces.UserService;
 
+import java.util.ArrayList;
+
 public class AtmServiceImpl implements AtmService {
     private final AtmRepository atmRepository;
     private final UserService userService;
@@ -18,6 +20,10 @@ public class AtmServiceImpl implements AtmService {
     @Override
     public void create(Atm atm, Long credentialID) {
         atmRepository.create(atm);
+
+        if (atm.getUsers() == null) {
+            atm.setUsers(new ArrayList<>());
+        }
 
         if (!atm.getUsers().isEmpty()) {
             atm.getUsers().forEach(user -> {

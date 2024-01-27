@@ -122,6 +122,7 @@ public class UserDAO implements UserRepository {
             String updateQuery = "UPDATE users SET name = ? WHERE id = ?";
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
                 ps.setString(1, user.getName());
+                ps.setLong(2, user.getId());
                 ps.executeUpdate();
             }
             connection.commit();

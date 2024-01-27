@@ -59,7 +59,7 @@ public class TransactionDAO implements TransactionRepository {
             connection.setAutoCommit(false);
             String selectQuery = "SELECT id AS transaction_id, date AS transaction_date, " +
                     "user_id AS transaction_user_id, amount AS transaction_amount,  " +
-                    "type AS transaction_type FROM transactions;";
+                    "type AS transaction_type FROM transactions WHERE id = ?";
             
             try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
                 ps.setLong(1, id);
@@ -120,6 +120,7 @@ public class TransactionDAO implements TransactionRepository {
                 ps.setDate(1, sqlDate);
                 ps.setDouble(2, transaction.getAmount());
                 ps.setString(3, transaction.getType());
+                ps.setLong(4, transaction.getId());
 
                 ps.executeUpdate();
             }

@@ -30,13 +30,13 @@ public class UserServiceImpl implements UserService {
             credentialService.create(user.getCredential());
         }
 
-        if (!user.getAccounts().isEmpty()) {
+        if (user.getAccounts() != null && !user.getAccounts().isEmpty()) {
             user.getAccounts().forEach(account -> {
                 accountService.create(account,user.getId());
             });
         }
 
-        if (!user.getTransactions().isEmpty()) {
+        if (user.getTransactions() != null && !user.getTransactions().isEmpty()) {
             user.getTransactions().forEach(transaction -> {
                 transactionService.create(transaction,user.getId());
             });
