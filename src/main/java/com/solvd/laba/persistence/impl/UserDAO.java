@@ -144,4 +144,49 @@ public class UserDAO implements UserRepository {
         }
 
     }
+
+    @Override
+    public User findByCredentialID(Long credentialID){
+        Connection connection = CONNECTION_POOL.getConnection();
+        User user = null;
+        try {
+            connection.setReadOnly(true);
+            connection.setAutoCommit(false);
+            String selectQuery = "SELECT u.id AS user_id, u.atm_id AS user_atm_id, u.credential_id AS user_credential_id, " +
+                    "u.name AS user_name, a.id AS account_id, a.balance AS account_balance, a.type AS account_type, " +
+                    "a.interest_rate AS account_interest_rate, " +
+                    "c.id AS credential_id, c.pin AS credential_pin, c.account_number AS credential_account_number, " +
+                    "t.id AS transaction_id, t.date AS transaction_date, " +
+                    "t.amount AS transaction_amount, t.type AS transaction_type " +
+                    "FROM users u JOIN accounts a ON u.id = a.user_id " +
+                    "JOIN credentials c ON u.credential_id = c.id " +
+                    "LEFT JOIN transactions t ON u.id = t.user_id " +
+                    "WHERE c.id = ?";
+
+            try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
+                ps.setLong(1, credentialID);
+                ResultSet resultSet = ps.executeQuery();
+                if (resultSet.next()) {
+                    user = mapRow(resultSet);
+                }
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                LOGGER.error("Rollback failed: " + ex.getMessage());
+            }
+            LOGGER.error("Select failed: " + e.getMessage());
+        } finally {
+            try {
+                connection.setReadOnly(false);
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                LOGGER.error("Auto-commit reset failed: " + e.getMessage());
+            }
+            CONNECTION_POOL.releaseConnection(connection);
+        }
+        return user;
+    }
 }

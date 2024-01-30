@@ -8,4 +8,8 @@ public interface CredentialService {
     Credential findById(Long id);
 
     void updateById(Credential credential);
+
+    Credential findByAccountNumber(String accountNumber);
+
+    String generateUniqueAccountNumber();
 }
