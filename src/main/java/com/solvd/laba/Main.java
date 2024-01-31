@@ -10,6 +10,7 @@ import com.solvd.laba.service.interfaces.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 
 
@@ -35,10 +36,10 @@ public class Main {
                 System.out.print("Enter your name: ");
                 String name = scanner.nextLine();
 
-                String uniqueAccountNumber = credentialService.generateUniqueAccountNumber();
-                System.out.println("Your new account number is: " + uniqueAccountNumber);
+                accountNumber = credentialService.generateUniqueAccountNumber();
+                System.out.println("Your new account number is: " + accountNumber);
                 String pin = getUserPin(scanner);
-                credential = createNewCredential(pin, uniqueAccountNumber);
+                credential = createNewCredential(pin, accountNumber);
                 credentialService.create(credential);
 
                 User user = createNewUser(name, null, accountList, transactionList);
@@ -56,43 +57,96 @@ public class Main {
         User foundUser = userService.findByCredentialID(credential.getId());
         System.out.println(foundUser);
         System.out.println("Welcome, " + foundUser.getName() + "!");
+        System.out.print("Enter your PIN to perform a transaction: ");
+        if (enterPinWithAttempts(scanner, foundUser)) {
+            System.out.println("PIN entered correctly. You can now perform a transaction.");
+        } else {
+            System.out.println("Exiting the program due to multiple incorrect PIN attempts.");
+            return;
+        }
+
+        while (true) {
+            System.out.println("Choose an operation:");
+            System.out.println("1. Withdrawal");
+            System.out.println("2. Deposit");
+            System.out.println("3. Transfer funds");
+            System.out.println("4. Check Balance");
+            System.out.println("5. Change PIN");
+            System.out.println("6. Exit");
+
+            int choice = scanner.nextInt();
+
+            switch (choice) {
+                case 1:
+                    double withDrawalAmount = appropriateWithdrawalAmount(scanner,foundUser);
+                    double newBalance = foundUser.getAccounts().get(0).getBalance() - withDrawalAmount;
+                    foundUser.getAccounts().get(0).setBalance(newBalance);
+                    accountService.updateById(foundUser.getAccounts().get(0));
+                    Transaction t1 = createNewTransaction(LocalDate.now(),withDrawalAmount,"WithDrawal");
+                    transactionService.create(t1,foundUser.getId());
+                    transactionList.add(t1);
+                    foundUser.setTransactions(transactionList);
+                    break;
+                case 2:
+                    userService.deposit(foundUser);
+                    break;
+                case 3:
+                    userService.transferFunds(foundUser);
+                    break;
+                case 4:
+                    foundUser = userService.findById(foundUser.getId());
+                    System.out.println("Current balance: " + foundUser.getAccounts().get(0).getBalance());
+                    userService.checkBalance(foundUser);
+                    break;
+                case 5:
+//                    userService.changePin(foundUser);
+                    credential.setPin(getUserPin(scanner));
+                    credentialService.updateById(credential);
+                    break;
+                case 6:
+                    System.out.println("Exiting the program.");
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please choose a valid operation.");
+            }
+        }
+
+    }
+
+    private static double appropriateWithdrawalAmount(Scanner scanner, User foundUser) {
+        double amount;
+        double currentBalance = foundUser.getAccounts().get(0).getBalance();
+        do {
+            System.out.print("Enter an appropriate amount to withdrawal: ");
+            amount = scanner.nextDouble();
+
+            if (amount <= 0) {
+                System.out.println("Cannot input a negative number or 0.");
+            } else if (amount > foundUser.getAccounts().get(0).getBalance()) {
+                System.out.println("Withdrawal amount exceeds account balance: " + currentBalance);
+            }
+        } while (amount <= 0 || amount > currentBalance);
+
+        return amount;
+    }
 
 
-//        while (true) {
-//            System.out.println("Choose an operation:");
-//            System.out.println("1. Withdrawal");
-//            System.out.println("2. Deposit");
-//            System.out.println("3. Transfer funds");
-//            System.out.println("4. Check Balance");
-//            System.out.println("5. Change PIN");
-//            System.out.println("6. Exit");
-//
-//            int choice = scanner.nextInt();
-//
-//            switch (choice) {
-//                case 1:
-//                    userService.withdrawal(user);
-//                    break;
-//                case 2:
-//                    userService.deposit(user);
-//                    break;
-//                case 3:
-//                    userService.transferFunds(user);
-//                    break;
-//                case 4:
-//                    userService.checkBalance(user);
-//                    break;
-//                case 5:
-//                    userService.changePin(user);
-//                    break;
-//                case 6:
-//                    System.out.println("Exiting the program.");
-//                    return;
-//                default:
-//                    System.out.println("Invalid choice. Please choose a valid operation.");
-//            }
-//        }
+    private static boolean enterPinWithAttempts(Scanner scanner, User user) {
+        int maxAttempts = 3;
+        int attempts = 0;
 
+        while (attempts < maxAttempts) {
+            System.out.print("Enter your PIN: ");
+            String enteredPin = scanner.nextLine();
+
+            if (Objects.equals(user.getCredential().getPin(), enteredPin)) {
+                return true;
+            } else {
+                attempts++;
+                System.out.println("Incorrect PIN. Attempts remaining: " + (maxAttempts - attempts));
+            }
+        }
+        return false;
     }
 
     private static String getUserPin(Scanner scanner) {

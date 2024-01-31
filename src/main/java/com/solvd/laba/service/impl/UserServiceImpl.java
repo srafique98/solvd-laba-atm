@@ -83,9 +83,4 @@ public class UserServiceImpl implements UserService {
 //        accountService.checkBalance(user);
     }
 
-    @Override
-    public void changePin(User user) {
-        // needCredentialService for pin change logic
-//        credentialService.changePin(user.getCredential());
-    }
 }
