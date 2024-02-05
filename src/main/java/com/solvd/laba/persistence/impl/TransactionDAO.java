@@ -92,7 +92,9 @@ public class TransactionDAO implements TransactionRepository {
         if (transactions == null){
             transactions = new ArrayList<>();
         }
-        transactions.add(mapRow(resultSet));
+        do{
+            transactions.add(mapRow(resultSet));
+        } while (resultSet.next());
         return transactions;
     }
 

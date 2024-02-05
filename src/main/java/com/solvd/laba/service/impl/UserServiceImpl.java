@@ -52,6 +52,35 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateById(User user) {
         userRepository.updateById(user);
-
     }
+
+    public  User findByCredentialID(Long credentialID){
+        return userRepository.findByCredentialID(credentialID);
+    }
+
+
+    @Override
+    public void withdrawal(User user) {
+        // need AccountService for withdrawal logic
+//        accountService.withdrawal(user);
+    }
+
+    @Override
+    public void deposit(User user) {
+        // need AccountService for deposit logic
+//        accountService.deposit(user);
+    }
+
+    @Override
+    public void transferFunds(User transferTo) {
+        // need AccountService for transfer logic
+//        accountService.transferFunds(user);
+    }
+
+    @Override
+    public void checkBalance(User user) {
+        // need AccountService for balance checking logic
+//        accountService.checkBalance(user);
+    }
+
 }

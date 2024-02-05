@@ -125,4 +125,40 @@ public class CredentialDAO implements CredentialRepository {
         }
 
     }
+
+    @Override
+    public Credential findByAccountNumber(String accountNumber){
+        Connection connection = CONNECTION_POOL.getConnection();
+        Credential credential = null;
+        try {
+            connection.setReadOnly(true);
+            connection.setAutoCommit(false);
+            String selectQuery = "SELECT id as credential_id, pin as credential_pin, account_number as credential_account_number FROM credentials WHERE account_number = ?";
+            try (PreparedStatement ps = connection.prepareStatement(selectQuery)) {
+                ps.setString(1, accountNumber);
+                ResultSet resultSet = ps.executeQuery();
+                if (resultSet.next()) {
+                    credential = mapRow(resultSet);
+                }
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                LOGGER.error("Rollback failed: " + ex.getMessage());
+            }
+            LOGGER.error("Select failed: " + e.getMessage());
+        } finally {
+            try {
+                connection.setReadOnly(false);
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                LOGGER.error("Auto-commit reset failed: " + e.getMessage());
+            }
+            CONNECTION_POOL.releaseConnection(connection);
+        }
+        return credential;
+    }
+
 }
