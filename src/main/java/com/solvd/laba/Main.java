@@ -4,10 +4,18 @@ import com.solvd.laba.domain.Account;
 import com.solvd.laba.domain.Credential;
 import com.solvd.laba.domain.Transaction;
 import com.solvd.laba.domain.User;
+import com.solvd.laba.persistence.impl.TransactionDAO;
 import com.solvd.laba.service.impl.*;
 import com.solvd.laba.service.interfaces.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -15,6 +23,7 @@ import java.util.Scanner;
 
 
 public class Main {
+    private static final Logger LOGGER = LogManager.getLogger(Main.class);
     public static void main(String[] args) {
         UserService userService = new UserServiceImpl();
         CredentialService credentialService = new CredentialServiceImpl();
@@ -86,12 +95,21 @@ public class Main {
                     transactionService.create(t1,foundUser.getId());
                     transactionList.add(t1);
                     foundUser.setTransactions(transactionList);
+                    printReceiptOption(scanner, "Withdrawal", withDrawalAmount, newBalance, LocalDate.now());
                     break;
                 case 2:
-                    userService.deposit(foundUser);
+                    double depositAmount = appropriateDepositAmount(scanner);
+                    double newBalanceAfterDeposit = foundUser.getAccounts().get(0).getBalance() + depositAmount;
+                    foundUser.getAccounts().get(0).setBalance(newBalanceAfterDeposit);
+                    accountService.updateById(foundUser.getAccounts().get(0));
+                    Transaction t2 = createNewTransaction(LocalDate.now(),depositAmount,"Deposit");
+                    transactionService.create(t2,foundUser.getId());
+                    transactionList.add(t2);
+                    foundUser.setTransactions(transactionList);
+                    printReceiptOption(scanner, "Deposit", depositAmount, newBalanceAfterDeposit, LocalDate.now());
                     break;
                 case 3:
-                    userService.transferFunds(foundUser);
+//                    userService.transferFunds(foundUser);
                     break;
                 case 4:
                     foundUser = userService.findById(foundUser.getId());
@@ -99,7 +117,6 @@ public class Main {
                     userService.checkBalance(foundUser);
                     break;
                 case 5:
-//                    userService.changePin(foundUser);
                     credential.setPin(getUserPin(scanner));
                     credentialService.updateById(credential);
                     break;
@@ -113,13 +130,49 @@ public class Main {
 
     }
 
+    private static void printReceiptOption(Scanner scanner, String transactionType, double amount, double newBalance, LocalDate date) {
+        System.out.println("Do you want a receipt for this " + transactionType.toLowerCase() + "?");
+        System.out.println("1. Yes");
+        System.out.println("2. No");
+        System.out.print("Enter your choice: ");
+
+        if (yesOrNo(scanner)) {
+            printReceipt(transactionType, amount, newBalance, date);
+        }
+    }
+
+    public static void printReceipt(String transactionType, double amount, double newBalance, LocalDate date) {
+        String timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss").format(LocalTime.now());
+        String fileName = "src/main/resources/" + transactionType + "_" + date.toString() + "_" + timeFormat + ".txt";
+        boolean appendToFile = new File(fileName).exists();
+        try (FileWriter writer = new FileWriter(new File(fileName), appendToFile)) {
+            List<String> lines = List.of(
+                    transactionType + " Amount: " + amount,
+                    "New Balance: " + newBalance,
+                    "Date : " + date
+            );
+            lines.forEach(line -> {
+                try {
+                    writer.write(line + "\n");
+                } catch (IOException e) {
+                    LOGGER.error("Error writing to the file: " + e.getMessage());
+                }
+            });
+            writer.write("\n");
+            LOGGER.info("Receipt written to the file successfully: " + fileName);
+        } catch (IOException e) {
+            LOGGER.error("Error writing to the file: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
     private static double appropriateWithdrawalAmount(Scanner scanner, User foundUser) {
         double amount;
         double currentBalance = foundUser.getAccounts().get(0).getBalance();
         do {
             System.out.print("Enter an appropriate amount to withdrawal: ");
             amount = scanner.nextDouble();
-
+            scanner.nextLine();
             if (amount <= 0) {
                 System.out.println("Cannot input a negative number or 0.");
             } else if (amount > foundUser.getAccounts().get(0).getBalance()) {
@@ -127,6 +180,23 @@ public class Main {
             }
         } while (amount <= 0 || amount > currentBalance);
 
+        return amount;
+    }
+
+    private static double appropriateDepositAmount(Scanner scanner) {
+        double amount;
+        do {
+            System.out.print("Enter an appropriate amount to deposit: ");
+            while (!scanner.hasNextDouble()) {
+                System.out.print("Invalid input. Enter a number: ");
+                scanner.next();
+            }
+            amount = scanner.nextDouble();
+            scanner.nextLine(); // new line char in buffer!
+            if (amount <= 0) {
+                System.out.println("Deposit amount must be greater than 0.");
+            }
+        } while (amount <= 0);
         return amount;
     }
 
