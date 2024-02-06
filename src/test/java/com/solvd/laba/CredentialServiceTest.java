@@ -1,7 +1,6 @@
 package com.solvd.laba;
 
 import com.solvd.laba.domain.Credential;
-import com.solvd.laba.persistence.impl.CredentialDAO;
 import com.solvd.laba.service.impl.CredentialServiceImpl;
 import com.solvd.laba.service.interfaces.CredentialService;
 import org.testng.annotations.BeforeSuite;
@@ -16,7 +15,13 @@ public class CredentialServiceTest {
     public void setUp() {
         credentialService = new CredentialServiceImpl();
     }
-
+    @DataProvider
+    public Object[][] validCredentials() {
+        return new Object[][] {
+                {"1234567890", "1234"},
+                {"3939234323", "8765"}
+        };
+    }
     @Test(description = "Verify creating a new credential")
     public void testCreateCredential() {
         SoftAssert sa = new SoftAssert();
@@ -39,14 +44,6 @@ public class CredentialServiceTest {
         Credential retrievedCredential = credentialService.findById(1L);
         sa.assertNotNull(retrievedCredential, "Retrieved credential should not be null");
         sa.assertAll();
-    }
-
-    @DataProvider
-    public Object[][] validCredentials() {
-        return new Object[][] {
-                {"1234567890", "1234"},
-                {"3939234323", "8765"}
-        };
     }
 
     @Test(description = "Verify updating a credential by ID", dataProvider = "validCredentials")
@@ -88,6 +85,4 @@ public class CredentialServiceTest {
         sa.assertNull(credential, "No credential should be found with an invalid account number");
         sa.assertAll();
     }
-
-
 }
